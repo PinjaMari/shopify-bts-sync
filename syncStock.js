@@ -12,6 +12,8 @@ const shopify = new Shopify({
 // Download and process CSV directly in memory (without saving to file)
 async function downloadCSV() {
   try {
+    console.log("Starting CSV download...");
+
     const response = await axios.get(
       'https://www.btswholesaler.com/generatefeedbts?user_id=1318121&pass=MiNNi800HyG201&format=csv&language_code=en-gb',
       { responseType: 'stream' }
@@ -23,6 +25,8 @@ async function downloadCSV() {
     response.data
       .pipe(csv({ separator: ';' }))  // Parse CSV directly from stream
       .on('data', (row) => {
+        console.log('Row received:', row); // Log each row for debugging
+        
         const ean = row.ean;
         const stock = parseInt(row.stock, 10);
 
@@ -35,6 +39,7 @@ async function downloadCSV() {
       })
       .on('end', async () => {
         console.log(`✅ CSV file processed with ${products.length} rows`);
+
         for (const product of products) {
           await syncStockByBarcode(product.ean, product.stock);
           await delay(500 + Math.floor(Math.random() * 200)); // Add jitter
@@ -57,6 +62,8 @@ function delay(ms) {
 // Sync stock by looking up product by barcode
 async function syncStockByBarcode(ean, stock, attempt = 1) {
   try {
+    console.log(`📦 Syncing stock for EAN: ${ean}, Stock: ${stock}`);
+    
     const products = await shopify.product.list({ barcode: ean });
 
     if (!products.length) {
@@ -98,3 +105,4 @@ async function syncStockByBarcode(ean, stock, attempt = 1) {
 
 // Start
 downloadCSV();
+
