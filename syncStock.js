@@ -18,7 +18,7 @@ async function downloadCSV() {
       { responseType: 'stream' }
     );
 
-    const filePath = 'C:/Users/Pinja/Desktop/stockfile.csv';
+    const filePath = './stockfile.csv'; // <- Save locally in project root
     const writer = fs.createWriteStream(filePath);
     response.data.pipe(writer);
 
@@ -55,7 +55,7 @@ function processCSV(filePath) {
       console.log(`✅ CSV file processed with ${products.length} rows`);
       for (const product of products) {
         await syncStockByBarcode(product.ean, product.stock);
-        await delay(500 + Math.floor(Math.random() * 200)); // Add jitter to prevent hitting rate limits
+        await delay(500 + Math.floor(Math.random() * 200)); // Add jitter
       }
     });
 }
@@ -65,7 +65,7 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Sync stock by looking up product by barcode (retry on error)
+// Sync stock by looking up product by barcode
 async function syncStockByBarcode(ean, stock, attempt = 1) {
   try {
     const products = await shopify.product.list({ barcode: ean });
@@ -107,6 +107,5 @@ async function syncStockByBarcode(ean, stock, attempt = 1) {
   }
 }
 
-// Start
+// Start the script
 downloadCSV();
-
