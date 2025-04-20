@@ -20,7 +20,7 @@ async function downloadCSV() {
     const products = [];
 
     response.data
-      .pipe(csv({ separator: ';' }))
+      .pipe(csv({ separator: ';' }))  // Process CSV directly in memory
       .on('data', (row) => {
         const ean = row.ean;
         const stock = parseInt(row.stock, 10);
