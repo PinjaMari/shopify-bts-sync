@@ -1,7 +1,6 @@
 require('dotenv').config();
 const Shopify = require('shopify-api-node');
 const axios = require('axios');
-const stream = require('stream');
 const csv = require('csv-parser');
 
 // Setup Shopify client
@@ -18,11 +17,10 @@ async function downloadCSV() {
       { responseType: 'stream' }
     );
 
-    const readableStream = response.data;
     const products = [];
 
     // Pipe the CSV stream directly to process it in memory
-    readableStream
+    response.data
       .pipe(csv({ separator: ';' }))
       .on('data', (row) => {
         const ean = row.ean;
@@ -41,6 +39,9 @@ async function downloadCSV() {
           await syncStockByBarcode(product.ean, product.stock);
           await delay(500 + Math.floor(Math.random() * 200)); // Add jitter
         }
+      })
+      .on('error', (error) => {
+        console.error('❌ Error processing CSV stream:', error.message);
       });
   } catch (error) {
     console.error('❌ Error downloading CSV:', error.message);
