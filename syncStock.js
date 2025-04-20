@@ -9,7 +9,7 @@ const shopify = new Shopify({
   accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
 });
 
-// Download the CSV and process it directly in memory
+// Download and process CSV directly in memory
 async function downloadCSV() {
   try {
     const response = await axios.get(
@@ -19,7 +19,6 @@ async function downloadCSV() {
 
     const products = [];
 
-    // Pipe the CSV stream directly to process it in memory
     response.data
       .pipe(csv({ separator: ';' }))
       .on('data', (row) => {
@@ -27,14 +26,14 @@ async function downloadCSV() {
         const stock = parseInt(row.stock, 10);
 
         if (!ean || isNaN(stock)) {
-          console.warn(⚠️ Skipping row: invalid EAN or stock - EAN: ${ean}, Stock: ${row.stock});
+          console.warn(`⚠️ Skipping row: invalid EAN or stock - EAN: ${ean}, Stock: ${row.stock}`);
           return;
         }
 
         products.push({ ean, stock });
       })
       .on('end', async () => {
-        console.log(✅ CSV file processed with ${products.length} rows);
+        console.log(`✅ CSV file processed with ${products.length} rows`);
         for (const product of products) {
           await syncStockByBarcode(product.ean, product.stock);
           await delay(500 + Math.floor(Math.random() * 200)); // Add jitter
@@ -43,6 +42,7 @@ async function downloadCSV() {
       .on('error', (error) => {
         console.error('❌ Error processing CSV stream:', error.message);
       });
+
   } catch (error) {
     console.error('❌ Error downloading CSV:', error.message);
   }
@@ -59,7 +59,7 @@ async function syncStockByBarcode(ean, stock, attempt = 1) {
     const products = await shopify.product.list({ barcode: ean });
 
     if (!products.length) {
-      console.warn(⚠️ No product found with barcode: ${ean});
+      console.warn(`⚠️ No product found with barcode: ${ean}`);
       return;
     }
 
@@ -67,7 +67,7 @@ async function syncStockByBarcode(ean, stock, attempt = 1) {
     const inventoryItemId = product.variants[0]?.inventory_item_id;
 
     if (!inventoryItemId) {
-      console.warn(⚠️ No valid inventory_item_id found for product with barcode: ${ean});
+      console.warn(`⚠️ No valid inventory_item_id found for product with barcode: ${ean}`);
       return;
     }
 
@@ -77,23 +77,23 @@ async function syncStockByBarcode(ean, stock, attempt = 1) {
       available: stock,
     });
 
-    console.log(✅ Stock updated for EAN ${ean} -> ${stock});
+    console.log(`✅ Stock updated for EAN ${ean} -> ${stock}`);
   } catch (error) {
     if (error.code === 'ECONNRESET' && attempt <= 3) {
-      console.warn(🔁 ECONNRESET on EAN ${ean}, retrying in 3s (Attempt ${attempt}));
+      console.warn(`🔁 ECONNRESET on EAN ${ean}, retrying in 3s (Attempt ${attempt})`);
       await delay(3000);
       return syncStockByBarcode(ean, stock, attempt + 1);
     }
 
     if (error.response?.data) {
-      console.error(❌ Error updating stock for EAN ${ean}:, error.response.data);
+      console.error(`❌ Error updating stock for EAN ${ean}:`, error.response.data);
     } else if (error.response?.body) {
-      console.error(❌ Error updating stock for EAN ${ean}:, error.response.body);
+      console.error(`❌ Error updating stock for EAN ${ean}:`, error.response.body);
     } else {
-      console.error(❌ Error updating stock for EAN ${ean}:, error.message);
+      console.error(`❌ Error updating stock for EAN ${ean}:`, error.message);
     }
   }
 }
 
-// Start the script
+// Start
 downloadCSV();
