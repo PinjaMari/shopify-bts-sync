@@ -9,7 +9,7 @@ const shopify = new Shopify({
   accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
 });
 
-// Download and process CSV directly in memory (without saving to file)
+// Download and process CSV directly from the URL (without saving to file)
 async function downloadCSV() {
   try {
     console.log("Starting CSV download...");
@@ -21,12 +21,12 @@ async function downloadCSV() {
 
     const products = [];
 
-    // Directly process CSV from the stream (no file saving)
+    // Process CSV data directly from the stream (without saving it to a file)
     response.data
       .pipe(csv({ separator: ';' }))  // Parse CSV directly from stream
       .on('data', (row) => {
         console.log('Row received:', row); // Log each row for debugging
-
+        
         const ean = row.ean;
         const stock = parseInt(row.stock, 10);
 
@@ -63,7 +63,7 @@ function delay(ms) {
 async function syncStockByBarcode(ean, stock, attempt = 1) {
   try {
     console.log(`📦 Syncing stock for EAN: ${ean}, Stock: ${stock}`);
-
+    
     const products = await shopify.product.list({ barcode: ean });
 
     if (!products.length) {
