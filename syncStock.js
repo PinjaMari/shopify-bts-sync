@@ -9,7 +9,7 @@ const shopify = new Shopify({
   accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
 });
 
-// Download and process CSV directly in memory
+// Download and process CSV directly in memory (without saving to file)
 async function downloadCSV() {
   try {
     const response = await axios.get(
@@ -19,8 +19,9 @@ async function downloadCSV() {
 
     const products = [];
 
+    // Directly process CSV from the stream (no file saving)
     response.data
-      .pipe(csv({ separator: ';' }))  // Process CSV directly in memory
+      .pipe(csv({ separator: ';' }))  // Parse CSV directly from stream
       .on('data', (row) => {
         const ean = row.ean;
         const stock = parseInt(row.stock, 10);
