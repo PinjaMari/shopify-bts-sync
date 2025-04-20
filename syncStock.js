@@ -1,7 +1,6 @@
 require('dotenv').config();
 const Shopify = require('shopify-api-node');
 const axios = require('axios');
-const fs = require('fs');
 const csv = require('csv-parser');
 
 // Setup Shopify client
@@ -10,7 +9,7 @@ const shopify = new Shopify({
   accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
 });
 
-// Download the CSV
+// Download the CSV and process it directly in memory
 async function downloadCSV() {
   try {
     const response = await axios.get(
@@ -18,46 +17,35 @@ async function downloadCSV() {
       { responseType: 'stream' }
     );
 
-    const filePath = 'C:/Users/Pinja/Desktop/stockfile.csv';
-    const writer = fs.createWriteStream(filePath);
-    response.data.pipe(writer);
+    const products = [];
 
-    writer.on('finish', () => {
-      console.log('✅ CSV file downloaded successfully');
-      processCSV(filePath);
-    });
+    // Pipe the CSV stream directly to process it in memory
+    response.data
+      .pipe(csv({ separator: ';' }))
+      .on('data', (row) => {
+        const ean = row.ean;
+        const stock = parseInt(row.stock, 10);
+
+        if (!ean || isNaN(stock)) {
+          console.warn(⚠️ Skipping row: invalid EAN or stock - EAN: ${ean}, Stock: ${row.stock});
+          return;
+        }
+
+        products.push({ ean, stock });
+      })
+      .on('end', async () => {
+        console.log(✅ CSV file processed with ${products.length} rows);
+        for (const product of products) {
+          await syncStockByBarcode(product.ean, product.stock);
+          await delay(500 + Math.floor(Math.random() * 200)); // Add jitter
+        }
+      })
+      .on('error', (error) => {
+        console.error('❌ Error processing CSV stream:', error.message);
+      });
   } catch (error) {
     console.error('❌ Error downloading CSV:', error.message);
   }
-}
-
-// Process the CSV file
-function processCSV(filePath) {
-  const products = [];
-
-  fs.createReadStream(filePath)
-    .pipe(csv({ separator: ';' }))
-    .on('data', (row) => {
-      if (products.length === 0) {
-        console.log('🔍 CSV Headers:', Object.keys(row));
-      }
-      const ean = row.ean;
-      const stock = parseInt(row.stock, 10);
-
-      if (!ean || isNaN(stock)) {
-        console.warn(⚠️ Skipping row: invalid EAN or stock - EAN: ${ean}, Stock: ${row.stock});
-        return;
-      }
-
-      products.push({ ean, stock });
-    })
-    .on('end', async () => {
-      console.log(✅ CSV file processed with ${products.length} rows);
-      for (const product of products) {
-        await syncStockByBarcode(product.ean, product.stock);
-        await delay(500 + Math.floor(Math.random() * 200)); // Add jitter to prevent hitting rate limits
-      }
-    });
 }
 
 // Helper: wait
@@ -65,7 +53,7 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Sync stock by looking up product by barcode (retry on error)
+// Sync stock by looking up product by barcode
 async function syncStockByBarcode(ean, stock, attempt = 1) {
   try {
     const products = await shopify.product.list({ barcode: ean });
@@ -107,5 +95,5 @@ async function syncStockByBarcode(ean, stock, attempt = 1) {
   }
 }
 
-// Start
+// Start the script
 downloadCSV();
