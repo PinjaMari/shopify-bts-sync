@@ -10,7 +10,7 @@ const shopify = new Shopify({
   accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
 });
 
-// Download the CSV and process directly
+// Download the CSV and process it directly in memory
 async function downloadCSV() {
   try {
     const response = await axios.get(
@@ -21,7 +21,7 @@ async function downloadCSV() {
     const readableStream = response.data;
     const products = [];
 
-    // Pipe the CSV stream to process it in memory
+    // Pipe the CSV stream directly to process it in memory
     readableStream
       .pipe(csv({ separator: ';' }))
       .on('data', (row) => {
