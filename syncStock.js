@@ -26,7 +26,7 @@ async function downloadCSV() {
       .pipe(csv({ separator: ';' }))  // Parse CSV directly from stream
       .on('data', (row) => {
         console.log('Row received:', row); // Log each row for debugging
-        
+
         const ean = row.ean;
         const stock = parseInt(row.stock, 10);
 
@@ -63,7 +63,7 @@ function delay(ms) {
 async function syncStockByBarcode(ean, stock, attempt = 1) {
   try {
     console.log(`📦 Syncing stock for EAN: ${ean}, Stock: ${stock}`);
-    
+
     const products = await shopify.product.list({ barcode: ean });
 
     if (!products.length) {
@@ -103,6 +103,6 @@ async function syncStockByBarcode(ean, stock, attempt = 1) {
   }
 }
 
-// Start
+// Start the process
 downloadCSV();
 
